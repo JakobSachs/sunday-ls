@@ -1,6 +1,6 @@
 # A rewrite/clone of GNU ls
 
-Just a small sunday project, mostly for practice.
+Just a small sunday project 🌄 , mostly for practice.
 
 # Installation
 
@@ -12,6 +12,6 @@ This will compile the executable to a file called `main`, which i would recommen
 
 # TODOS
 
--[ ] Add colors
--[ ] Add wrapping to the output
--[ ] Add recursive listing 
+- [ ] Add colors
+- [ ] Add wrapping to the output
+- [ ] Add recursive listing 
