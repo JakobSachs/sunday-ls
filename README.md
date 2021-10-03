@@ -16,6 +16,8 @@ This will compile the executable to a file called `main`, which i would recommen
 - [ ] Add colors
 - [ ] Add wrapping to the output
 - [ ] Add recursive listing 
+- [ ] Add list view
+- [ ] Add extra sort categories
 
 # Other Notes
 
