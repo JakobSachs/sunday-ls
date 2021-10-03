@@ -12,6 +12,11 @@ This will compile the executable to a file called `main`, which i would recommen
 
 # TODOS
 
+- [ ] Dynamic resizing of entries array
 - [ ] Add colors
 - [ ] Add wrapping to the output
 - [ ] Add recursive listing 
+
+# Other Notes
+
+I found it currently uses roughly 150% more memory then the original, might do some work to fix this in the future.
