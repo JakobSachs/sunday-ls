@@ -52,7 +52,6 @@ void usage(FILE* fp)  // Print usage/help for the programm
   fprintf(fp, "\t-a\tShow all files (including 'hidden' ones)\n");
   fprintf(fp, "\t-h\tPrints this help\n");
   fprintf(fp, "\t-r\tReverse the sorting of the list\n");
-
 }
 
 int main(const int argc, char* const argv[])
@@ -94,7 +93,8 @@ int main(const int argc, char* const argv[])
           break;
 
         case '?':
-          fprintf(stderr, "ERROR: unrecognized argument %s\n", argv[optind-1]);
+          fprintf(stderr, "ERROR: unrecognized argument %s\n",
+                  argv[optind - 1]);
 
           usage(stderr);
           free(options);
@@ -199,6 +199,10 @@ int main(const int argc, char* const argv[])
   puts(buff);
 
   closedir(dir_p);
+
+  for (int i = 0; i < MAX_LIST_SIZE; i++) free(entries[i]);
+  free(entries);
+
   free(options);
   free(buff);
 
