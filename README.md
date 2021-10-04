@@ -13,7 +13,7 @@ This will compile the executable to a file called `main`, which i would recommen
 # TODOS
 
 - [ ] Dynamic resizing of entries array
-- [ ] Add colors
+- [ ] Add colors (WIP)
 - [ ] Add wrapping to the output
 - [ ] Add recursive listing 
 - [ ] Add list view
