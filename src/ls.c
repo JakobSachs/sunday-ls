@@ -13,7 +13,7 @@
  *				03.10.2021
  *
  ******************************************************************************/
-#define COLOR_CODE_LENGTH 30
+#define COLOR_CODE_LENGTH 300
 #define INIT_BUFF_LEN 100
 #define MAX_LIST_SIZE 250
 
@@ -198,7 +198,9 @@ int main(const int argc, char* const argv[])
           free(options);
           return EXIT_SUCCESS;
           break;
-
+        case 'c':
+          options->print_color = 1;
+          break;
         case '?':
           fprintf(stderr, "ERROR: unrecognized argument %s\n",
                   argv[optind - 1]);
@@ -293,7 +295,7 @@ int main(const int argc, char* const argv[])
     colors[i] = malloc(COLOR_CODE_LENGTH * sizeof(**colors));
 
   const char* colors_config = getenv("LSCOLORS");
-  if (!colors_config)
+  if (!colors_config || !options->print_color)
   {
     print_colors = 0;
   } else
@@ -316,8 +318,8 @@ int main(const int argc, char* const argv[])
       char fg = colors_config[i * 2];
       char bg = colors_config[i * 2 + 1];
 
-      strncat(colors[i], ls_to_ansi_color(fg, 1), 20);
-      strncat(colors[i], ls_to_ansi_color(bg, 0), 20);
+      strncat(colors[i], ls_to_ansi_color(fg, 1), COLOR_CODE_LENGTH);
+      strncat(colors[i], ls_to_ansi_color(bg, 0), COLOR_CODE_LENGTH);
     }
   }
 
@@ -335,7 +337,7 @@ int main(const int argc, char* const argv[])
 
       if (print_colors)
       {
-        char* color_code = malloc(20 * sizeof(*color_code));
+        char* color_code = malloc(COLOR_CODE_LENGTH * sizeof(*color_code));
 
         // TODO: make this proper, and add all the colors
         switch (entries[i].type)
@@ -344,32 +346,32 @@ int main(const int argc, char* const argv[])
             struct stat sb;
             if (stat(entries[i].name, &sb) == 0 &&
                 sb.st_mode & S_IXUSR)  // is executable
-              strncpy(color_code, colors[4], 20);
+              strncpy(color_code, colors[4], COLOR_CODE_LENGTH);
             else
-              strncpy(color_code, "", 20);
+              strncpy(color_code, "", COLOR_CODE_LENGTH);
             break;
           }
           case DT_DIR:
-            strncpy(color_code, colors[0], 20);
+            strncpy(color_code, colors[0], COLOR_CODE_LENGTH);
             break;
           case DT_LNK:
-            strncpy(color_code, colors[1], 20);
+            strncpy(color_code, colors[1], COLOR_CODE_LENGTH);
             break;
           case DT_SOCK:
-            strncpy(color_code, colors[2], 20);
+            strncpy(color_code, colors[2], COLOR_CODE_LENGTH);
             break;
           case DT_FIFO:
-            strncpy(color_code, colors[3], 20);
+            strncpy(color_code, colors[3], COLOR_CODE_LENGTH);
             break;
           case DT_BLK:
-            strncpy(color_code, colors[5], 20);
+            strncpy(color_code, colors[5], COLOR_CODE_LENGTH);
             break;
           case DT_CHR:
-            strncpy(color_code, colors[6], 20);
+            strncpy(color_code, colors[6], COLOR_CODE_LENGTH);
             break;
         }
 
-        int cl_l = strnlen(color_code, 20);
+        int cl_l = strnlen(color_code, COLOR_CODE_LENGTH);
 
         if (cl_l + idx >= b_len)
         {
@@ -382,23 +384,25 @@ int main(const int argc, char* const argv[])
       }
 
       strncpy(&buff[idx], entries[i].name, l);
-
       idx += l;
+
+      if (print_colors)  // put in reset code
+      {
+        int rs_l = strnlen(reset, 10);
+
+        if (rs_l + idx >= b_len)
+        {
+          buff = realloc(buff, b_len * 2);
+          b_len *= 2;
+        }
+        strncpy(&buff[idx], reset, rs_l);
+        idx += rs_l;
+      }
       buff[idx] = '\t';
       ++idx;
-
-      // put in reset code
-      int rs_l = strnlen(reset, 10);
-
-      if (rs_l + idx >= b_len)
-      {
-        buff = realloc(buff, b_len * 2);
-        b_len *= 2;
-      }
-
-      strncpy(&buff[idx],reset,rs_l);
     }
   }
+
   puts(buff);
 
   closedir(dir_p);
