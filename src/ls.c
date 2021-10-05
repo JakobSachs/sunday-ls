@@ -21,7 +21,17 @@
 #include <unistd.h>
 #include <string.h>
 #include <dirent.h>
+#include <time.h>
 #include <linux/limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+typedef struct
+{
+  char* name;
+  size_t size;
+  time_t time;
+} file_record;
 
 struct prog_options
 {
@@ -33,17 +43,17 @@ struct prog_options* options;
 
 int entry_cmp(void const* p1, void const* p2)
 {
-  char* left = *((char**) p1);
-  char* right = *((char**) p2);
-
-  return strncmp(left, right, NAME_MAX);
+  file_record left = *((file_record*) p1);
+  file_record right = *((file_record*) p2);
+	
+  return strncasecmp(left.name, right.name, NAME_MAX);
 }
 int entry_cmp_r(void const* p1, void const* p2)
 {
-  char* left = *((char**) p1);
-  char* right = *((char**) p2);
+  file_record left = *((file_record*) p1);
+  file_record right = *((file_record*) p2);
 
-  return -strncmp(left, right, NAME_MAX);
+  return -strncasecmp(left.name, right.name, NAME_MAX);
 }
 
 void usage(FILE* fp)  // Print usage/help for the programm
@@ -147,9 +157,9 @@ int main(const int argc, char* const argv[])
   DIR* dir_p;
   struct dirent* entry_p;
 
-  char** entries = malloc(MAX_LIST_SIZE * sizeof(char*));
+  file_record* entries = malloc(MAX_LIST_SIZE * sizeof(file_record));
   for (int i = 0; i < MAX_LIST_SIZE; i++)
-    entries[i] = malloc(NAME_MAX * sizeof(char));
+    entries[i].name = malloc(NAME_MAX * sizeof(char*));
 
   int entry_idx = 0;
 
@@ -158,10 +168,18 @@ int main(const int argc, char* const argv[])
   {
     while ((entry_p = readdir(dir_p)))
     {
-      // entry_p->d_name should always be shorter then (linux limits)
+      if (strncmp(entry_p->d_name, ".", NAME_MAX) != 0)
+      {
+        strncpy(entries[entry_idx].name, entry_p->d_name, NAME_MAX);
 
-      strncpy(entries[entry_idx], entry_p->d_name, NAME_MAX);
-      ++entry_idx;
+        struct stat st_bf;
+        stat(entry_p->d_name, &stat);
+
+				entries[entry_idx].size = st_bf.st_size;
+				entries[entry_idx].time = st_bf.st_mtime;
+				
+        ++entry_idx;
+      }
     }
   } else
   {
@@ -175,22 +193,22 @@ int main(const int argc, char* const argv[])
 
   // sort entries
   if (options->order_rev)
-    qsort(entries, entry_idx, sizeof(char*), entry_cmp_r);
+    qsort(entries, entry_idx, sizeof(file_record), entry_cmp_r);
   else
-    qsort(entries, entry_idx, sizeof(char*), entry_cmp);
+    qsort(entries, entry_idx, sizeof(file_record), entry_cmp);
 
   for (int i = 0; i < entry_idx; i++)
   {
     // assemble buff
-    if (entries[i][0] != '.' || options->show_hidden)
+    if (entries[i].name[0] != '.' || options->show_hidden)
     {
-      int l = strnlen(entries[i], NAME_MAX);
+      int l = strnlen(entries[i].name, NAME_MAX);
       if (l + idx >= b_len)  // check for buff size
       {
         buff = realloc(buff, b_len * 2);
         b_len *= 2;
       }
-      strncpy(&buff[idx], entries[i], l);
+      strncpy(&buff[idx], entries[i].name, l);
       idx += l;
       buff[idx] = '\t';
       ++idx;
@@ -200,7 +218,7 @@ int main(const int argc, char* const argv[])
 
   closedir(dir_p);
 
-  for (int i = 0; i < MAX_LIST_SIZE; i++) free(entries[i]);
+  for (int i = 0; i < MAX_LIST_SIZE; i++) free(entries[i].name);
   free(entries);
 
   free(options);
