@@ -22,6 +22,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <time.h>
+#include <errno.h>
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -45,7 +46,7 @@ int entry_cmp(void const* p1, void const* p2)
 {
   file_record left = *((file_record*) p1);
   file_record right = *((file_record*) p2);
-	
+
   return strncasecmp(left.name, right.name, NAME_MAX);
 }
 int entry_cmp_r(void const* p1, void const* p2)
@@ -159,7 +160,7 @@ int main(const int argc, char* const argv[])
 
   file_record* entries = malloc(MAX_LIST_SIZE * sizeof(file_record));
   for (int i = 0; i < MAX_LIST_SIZE; i++)
-    entries[i].name = malloc(NAME_MAX * sizeof(char*));
+    entries[i].name = malloc(PATH_MAX * sizeof(char*));
 
   int entry_idx = 0;
 
@@ -170,14 +171,26 @@ int main(const int argc, char* const argv[])
     {
       if (strncmp(entry_p->d_name, ".", NAME_MAX) != 0)
       {
-        strncpy(entries[entry_idx].name, entry_p->d_name, NAME_MAX);
+        strncpy(entries[entry_idx].name, options->directory,PATH_MAX);
+        strncat(entries[entry_idx].name, "/", PATH_MAX);
+        strncat(entries[entry_idx].name, entry_p->d_name, PATH_MAX);
 
+        
         struct stat st_bf;
-        stat(entry_p->d_name, &stat);
+        int res = stat(entries[entry_idx].name, &stat);
+        if (res != 0)
+        {
+          fprintf(stderr, "ERROR: Failed to open: %s\t[%s]\n", entries[entry_idx].name,strerror(errno));
+          closedir(dir_p);
+          free(options);
+          for (int i = 0; i < MAX_LIST_SIZE; i++) free(entries[i].name);
+          free(entries);
+          free(buff);
+          return EXIT_FAILURE;
+        }
+        entries[entry_idx].size = st_bf.st_size;
+        entries[entry_idx].time = st_bf.st_mtime;
 
-				entries[entry_idx].size = st_bf.st_size;
-				entries[entry_idx].time = st_bf.st_mtime;
-				
         ++entry_idx;
       }
     }
@@ -187,7 +200,11 @@ int main(const int argc, char* const argv[])
     // like 'is not a directory' , etc.
     fprintf(stderr, "ERROR: Failed to open directory: %s\n",
             options->directory);
+    closedir(dir_p);
     free(options);
+    for (int i = 0; i < MAX_LIST_SIZE; i++) free(entries[i].name);
+    free(entries);
+    free(buff);
     return EXIT_FAILURE;
   }
 
@@ -197,6 +214,8 @@ int main(const int argc, char* const argv[])
   else
     qsort(entries, entry_idx, sizeof(file_record), entry_cmp);
 
+
+  // iterate over entries
   for (int i = 0; i < entry_idx; i++)
   {
     // assemble buff
@@ -214,7 +233,8 @@ int main(const int argc, char* const argv[])
       ++idx;
     }
   }
-  puts(buff);
+  // print buffer
+  puts(buff); 
 
   closedir(dir_p);
 
